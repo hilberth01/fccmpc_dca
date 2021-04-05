@@ -336,6 +336,19 @@ function isUserDisapprovedTheTask($task_id, $user_id ) {
     return false;
 }
 
+/**
+     * Function to check if the request approval has  been completed.
+     */
+    public function isRequestApprovalComplete(){
+        $workflow = $this->GetWorkflow();
+        
+        $task_count = $workflow->getTaskCount();
+        $approved_count = $this->getApprovedRequestCount();
+
+        return $task_count == $approved_count ? true : false;
+        
+    }
+
     /**
      * Get the count of the request approved or confirm task
      * in the request task status table.
@@ -358,6 +371,8 @@ function isUserDisapprovedTheTask($task_id, $user_id ) {
 
         return 0;
     }
+
+    
 
     /**
      * Get users request task count.
@@ -426,7 +441,7 @@ function isUserDisapprovedTheTask($task_id, $user_id ) {
 
         if ($query->num_rows > 0) {
             $row = $query->fetch_assoc();
-            return $row['ug_members'];
+            return $row['ugname'];
         }
  
         return 'xxx';
@@ -596,7 +611,7 @@ function isUserDisapprovedTheTask($task_id, $user_id ) {
      * Class objects
      */
     public function GetWorkflow(){
-        return new Workflow($this->wokflow_id);
+        return new Workflow($this->workflow_id);
     }
 
 

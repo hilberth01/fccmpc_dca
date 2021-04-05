@@ -163,7 +163,7 @@ if (isset($_POST['user_apex'])) {
         $_SESSION['success'] = $request_id . ' request has been ' . $approval_state;
 
 		// total approver in a task of a request
-		$approver_total = $request->getRequestTaskApproversCount($task_id);
+		//$approver_total = $request->getRequestTaskApproversCount($task_id);
 
 		$task = new Task($task_id);
         $required_number_approval = $task->getNeeded_approval();
@@ -171,26 +171,29 @@ if (isset($_POST['user_apex'])) {
 		// get approved count in a task for a request
 		// ex. Minda --> approved, Shiela --> not yet
 		// total task approver = 2     approved_count = 1
-        $approved_count = $request->getRequestTaskApprovalCount($task_id);
+       // $approved_count = $request->getRequestTaskApprovalCount($task_id);
         $total_task = $workflow->getTaskCount();
 
         // no. of task approved in a request
         $countstat = $request->getApprovedRequestCount(); // + 1;
+
+		$isTaskComplete = $request->isTaskApprovalComplete($task_id);
+		$isRequestComplete = $request->isRequestApprovalComplete();
         
 		// completed
-        if (($total_task == $countstat) && ($approver_total == $approved_count)) {
+        if ($isRequestComplete &&   $isTaskComplete) {
             $status = 'Completed';
-
 			// In Progress
         } elseif (($approval_state == 'Approved' || $approval_state == 'Confirmed')
-            and ($approver_total != $approved_count)) {
+            and (!$isTaskComplete)) {
             $status = 'InProgress';
 
 			// Approved or Confirm
         } elseif (($approval_state == 'Approved' || $approval_state == 'Confirmed')
-        and ($approver_total == $approved_count)) {
+        and ($isTaskComplete)) {
             $status = $approval_state;
         }
+
 		else {
             $status = $approval_state;
         }
@@ -205,13 +208,14 @@ if (isset($_POST['user_apex'])) {
             $_SESSION['error'] = $conn->error;
         }
 
-	} else
-	{
+	} else	{
 		$_SESSION['error'] = 'Request approval fail';
 	}
 
 	$paction = 'INSERT';
+
 }
+
 //execute edit item=======================================
 else if (isset($_POST['edit'])) {
 	$id = $_POST['id'];
