@@ -52,7 +52,7 @@ error_reporting(E_ALL);
             $initstat,
             $unixtime
         );
-
+// 
         if ($result) {
             // insert tor request approval table
             RequestApproval::insertRequestApproval(
