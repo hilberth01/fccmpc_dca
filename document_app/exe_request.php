@@ -231,7 +231,7 @@ error_reporting(E_ALL);
         $request = new Request($id);
         $request->setStatus('Cancelled');
         
-        $result = $request->update_request();
+        $result = $request->updateRequest();
 
         if ($result) {
             $_SESSION['success'] = 'Request has been successfully cancelled';
@@ -239,7 +239,7 @@ error_reporting(E_ALL);
             $_SESSION['error'] = "Error cancelling request";
         }
         
-        $result = RequestApproval::insert_request_approval(
+        $result = RequestApproval::insertRequestApproval(
             $rqid,
             'Cancelled',
             'Cancelled',
