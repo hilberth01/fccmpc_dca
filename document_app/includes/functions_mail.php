@@ -14,7 +14,7 @@ function send_mail($reqNo)
 
     $url = $serverhostname."/coop/document_app/?pid=approval_rev&track={$reqNo}";
 
-$sql = "SELECT rm.rq_id, rm.rq_status, rm.rq_name, rm.rq_description, 
+    $sql = "SELECT rm.rq_id, rm.rq_status, rm.rq_name, rm.rq_description, 
 		wf.form_sequence, wf.form_id, wf.form_name, 
 		wf.form_steps_id,fss.work_id, fss.work_name, rts.user_approvers
 		FROM fs_request_main rm 
@@ -29,10 +29,10 @@ $sql = "SELECT rm.rq_id, rm.rq_status, rm.rq_name, rm.rq_description,
     // subject
     $subject = 'FCCMPC Document Control - '.$reqNo;
 
-    //get requetor mail
+    // get requetor mail
     $requestro = get_requestor_mail($reqNo);
 
-    //get last status of the request
+    // get last status of the request
     $last_status = last_state($reqNo);
 
     // message
@@ -105,23 +105,25 @@ $sql = "SELECT rm.rq_id, rm.rq_status, rm.rq_name, rm.rq_description,
 
     $query = $conn->query($sql);
 
-	$request = new request($reqNo);
+    $request = new request($reqNo);
 
     while ($row = $query->fetch_assoc()) {
-
-		$task_id = $row['form_steps_id'];
+        
+        $task_id = $row['form_steps_id'];
         $obj_tbl_app = json_decode(get_appv_stat_event($row['rq_id'], $row['form_id'], $row['form_steps_id']));
         
-		// $app_apex = (isset($obj_tbl_app->rq_status) && $obj_tbl_app->rq_status != '') 
-		// ? $obj_tbl_app->rq_status : "Pending";
+        // $app_apex = (isset($obj_tbl_app->rq_status) && $obj_tbl_app->rq_status != '')
+        // ? $obj_tbl_app->rq_status : "Pending";
 
-		$app_apex = $request->isTaskApprovalComplete($row['form_steps_id']) == true 
-					? 'Approved' : 'Pending';
+        $app_apex = $request->isTaskApprovalComplete($row['form_steps_id']) == true
+                    ? 'Approved' : 'Pending';
 
-		// override if contain disapproval
-        if ($request->isRequestHasDisapproval()) $app_apex = 'Disapproved';
+        // override if contain disapproval
+        if ($request->isRequestHasDisapproval()) {
+            $app_apex = 'Disapproved';
+        }
         
-		$app_date = ($obj_tbl_app->unix_date != 0) ? date("Y-m-d H:i:s", $obj_tbl_app->unix_date) : "";
+        $app_date = ($obj_tbl_app->unix_date != 0) ? date("Y-m-d H:i:s", $obj_tbl_app->unix_date) : "";
         $app_name = (isset($obj_tbl_app->firstname)) ? $obj_tbl_app->firstname.' '.$obj_tbl_app->lastname : "";
         //$app_remarks = (isset($obj_tbl_app->user_remarks)) ? $obj_tbl_app->user_remarks : "";
 
@@ -151,18 +153,18 @@ $sql = "SELECT rm.rq_id, rm.rq_status, rm.rq_name, rm.rq_description,
          		  <td>' . $app_date . '</td>
          		 </tr>';
 
-    //
+        //
     }
 
-	$wrapped = $cache_member;
+    $wrapped = $cache_member;
 
-	// this is not to wrapped the approver if it only contains
-	// single approver
+    // this is not to wrapped the approver if it only contains
+    // single approver
     if (count(explode(',', $cache_member)) > 1) {
         $wrapped ='"'.str_replace(',', '","', $wrapped).'"';
-    }else{
-		$wrapped = "'" . $cache_member . "'";
-	}
+    } else {
+        $wrapped = "'" . $cache_member . "'";
+    }
 
     $message .= '
   </table>
@@ -172,10 +174,11 @@ $sql = "SELECT rm.rq_id, rm.rq_status, rm.rq_name, rm.rq_description,
   </body>
 </html>
 ';
+
     $cc = $requestro;
     if ($srow['rq_status'] == 'Completed' || $srow['rq_status'] == 'Disapproved') {
         $to = $requestro;
-       // $cc = get_approver_mail($wrapped);
+    // $cc = get_approver_mail($wrapped);
     } else {
         $to = get_approver_mail($wrapped);
         $cc = $requestro;

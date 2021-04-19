@@ -1,8 +1,8 @@
 <?php
 
-include 'workflow.php';
-include 'task.php';
-include 'user_group.php';
+require_once 'workflow.php';
+require_once 'task.php';
+require_once 'user_group.php';
 
 use Doctrine\Common\Collections\ArrayCollection;
 
@@ -42,6 +42,12 @@ class RequestTaskStatus
 
             // $result->close();
         }
+    }
+
+   
+
+    public function Task(){
+        return new Task($this->task_id);
     }
 
 
@@ -106,7 +112,7 @@ class RequestTaskStatus
                 $approver_groups = $approvers;
             }
           
-                RequestTaskStatus::InsertRequestToTaskStatus(
+                     RequestTaskStatus::InsertRequestToTaskStatus(
                     $workflow->getWf_id(),
                     $task->getTask_id(),
                     $request_id,
@@ -215,6 +221,7 @@ class RequestTaskStatus
      * Check if the requestor is an approver of this request task.
      */
     public function isRequestorApprover($user_id){
+
         $groups = explode(',', $this->user_approvers);
 
         foreach ($groups as $group){
@@ -229,7 +236,10 @@ class RequestTaskStatus
         }
 
         return false;
+
     }
+
+
 
     /**
      * Check if the user already reviewed on the task like
@@ -245,6 +255,7 @@ class RequestTaskStatus
 
         $result = $this->conn->query($sql);
 
+        if (!$result) return false;
         if ($result->num_rows > 0) return true;
 
         return false;

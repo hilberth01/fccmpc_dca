@@ -9,6 +9,9 @@ switch ($pgAccess) {
   case "complited_list":
     include 'content_completed_request.php';
     break;
+    case "approved_documents":
+      include 'content_approved_documents.php';
+      break;
   case "votes":
      include 'content_votes.php';
     break;

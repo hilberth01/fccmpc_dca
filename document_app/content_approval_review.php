@@ -213,7 +213,9 @@
 
 										$member_array = explode(",", $userTaskapprv);
 										$member_array = array_unique($member_array);
-										$approver_total = count($member_array);
+										//$approver_total = count($member_array);
+										$approver_total = $request->getRequestTaskApproverUsers(
+											$crow['form_steps_id'])->count();
 
 										//var_dump($member_array);
 
@@ -316,9 +318,11 @@
 											}
 										} else {
 											$appbtn = '<button type="button" class="btn btn-warning btn-sm btn-flat clist apex" disabled><i class="fa fa-pencil"></i> Evaluate</button>';
+
 											if ($app_apex == 'Approved'  || $app_apex == 'Confirmed') {
 												$input = $status_label_o;
-												$appbtn = '<button type="button" class="btn btn-primary btn-sm btn-flat clist apex" disabled><i class="fa fa-retweet"></i> Done</button>';
+												$appbtn = '<button type="button" class="btn btn-primary btn-sm btn-flat clist apex" disabled>
+												<i class="fa fa-retweet"></i> Done</button>';
 												$rowClass = 'success';
 											} else if ($app_apex == 'Disapproved') {
 												$input = $status_label_x;

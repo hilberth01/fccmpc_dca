@@ -61,6 +61,8 @@
                 <h4 class="modal-title"><b>Add New Request</b></h4>
             </div>
 
+
+
             <div class="modal-body">
                 <form class="form-horizontal" method="POST" action="exe_request.php" enctype="multipart/form-data">
 
@@ -120,7 +122,7 @@
                         <div class="col-sm-9">
                             <select class="form-control app_group" id="app_group_val" name="app_group[]"
                                 multiple="multiple">
-                                <option value="" selected>- Select -</option>
+                                <!-- <option value="" selected>- Select -</option> -->
                             </select>
                         </div>
                     </div>

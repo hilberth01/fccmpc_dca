@@ -3,8 +3,7 @@
 
         <?php include 'includes/navbar.php'; ?>
         <?php include 'includes/menubar.php'; ?>
-        <?php include 'includes/functions.php'; 
-      
+        <?php include 'includes/functions.php';      
       
         ?>
 
@@ -70,8 +69,7 @@
                     <div class="col-xs-12">
                         <div class="box">
                             <div class="box-header with-border">
-                                <a href="#addnew" data-toggle="modal" class="btn btn-primary btn-sm btn-flat"
-                                    <?php 
+                                <a href="#addnew" data-toggle="modal" class="btn btn-primary btn-sm btn-flat" <?php 
                                       if (isset($_GET['status'])) { 
                                         ?> style="visibility: hidden" <?php 
                                     } ?>>
@@ -105,9 +103,9 @@
                                         <?php
                     include 'classes/user.php';
                     include 'classes/workflow.php';
-                    include 'classes/user_group.php';
+                   // require_once 'classes/user_group.php';
                     include 'classes/request.php';
-                    include 'classes/task.php';
+                    require_once 'classes/task.php';
                     include 'classes/request_approval.php';
                     include 'classes/request_attachment.php';
 
@@ -130,11 +128,13 @@
 
                     $query = request:: list_requests($filter_status);
 
+                    $lastStep = '';
+                    
                     while ($row = $query->fetch_assoc()) {
                       $reqid = $row['rq_id'];
 
                       if ($status == 'Approved') { // pending
-                       // $lastStep = next_task($row['rq_id']);
+                         // $lastStep = next_task($row['rq_id']);
                       } else {
                         // $next_step =  next_task($row['rq_id']);
 
@@ -437,17 +437,26 @@
                     $("#app_group_val").attr('required', false);
                     deselectmulti();
                 } else {
-                    $('#app_group_val').multiselect({
-                        //includeSelectAllOption: true,
-                    });
+                    // $('#app_group_val').multiselect({
+                    //    includeSelectAllOption: true
+                    // });
 
+                    $('#app_group_val')
+    .multiselect({
+      selectAllText: 'Select All',
+      maxHeight: 200,
+      includeSelectAllOption: true
+    })
+    .multiselect('selectAll', false)
+    .multiselect('updateButtonText');
+                    
                     $("#app_group_val").attr('required', true);
                     $('.app_group')
                         .find('option')
                         .remove()
                         .end()
-                    $('.app_group').append('<option value="">-Select-</option>');
-                    $(".app_group").val('Select');;
+                    // $('.app_group').append('<option value="">-Select All-</option>');
+                    $(".app_group").val('Select');
 
                     i = 0;
                     splitstr = response.approver.split(',');

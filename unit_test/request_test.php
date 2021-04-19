@@ -52,7 +52,6 @@ class RequestTest extends TestCase
         $this->assertEquals($expected, $actual);
 
     }
-
     
 }
 ?>

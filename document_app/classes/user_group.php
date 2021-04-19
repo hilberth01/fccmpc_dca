@@ -1,7 +1,9 @@
+
 <?php
 
 require_once '../vendor/autoload.php';
 require_once 'user.php';
+
 use Doctrine\Common\Collections\ArrayCollection;
 
 class user_group
@@ -62,6 +64,8 @@ class user_group
 
         return $collection;
     }
+
+    
 
     // public function __set($name, $value){
     //     $this->group_row = $value;

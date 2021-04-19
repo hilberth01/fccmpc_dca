@@ -7,19 +7,22 @@
     include 'includes/functions.php';
     include 'includes/functions_mail.php';
     require_once 'classes/request.php';
-    include 'classes/request_approval.php';
-    include 'classes/request_attachment.php';
-    include 'classes/request_task_status.php';
+    require_once 'classes/request_approval.php';
+    require_once 'classes/request_attachment.php';
+    require_once 'classes/request_task_status.php';
+    require_once 'classes/user_group.php';
+    require_once 'classes/request_mail.php';
 
     ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
     
     $paction = '';
     $send_mail = 'NO';
     
     //execute add item=======================================
     if (isset($_POST['add'])) {
+
         $docname = $_POST['docname'];
         $docdesp = $_POST['docdesp'];
         $workflow = $_POST['workflow'];
@@ -35,7 +38,7 @@ error_reporting(E_ALL);
                         : '';
         
         // genereate control code no.
-        $genControlNo = request::generate_control_no();
+        $genControlNo = request::generateControlNo();
 
         /**
          * Insert the request to main request table.
@@ -70,7 +73,13 @@ error_reporting(E_ALL);
                                                    $app_group_sel);
                     
             $_SESSION['success'] = 'New request has been successfully generated';
-            $send_mail = 'YES';
+
+            $request = new Request($genControlNo);
+            $task_id = $request->getRequestTasksStatus()->first()->getTask_id();
+
+            $mail = new RequestMail($genControlNo);
+            $mail->sendRequestMail($task_id);
+
         } 
         else {
             $_SESSION['error'] = $conn->error;
@@ -231,7 +240,7 @@ error_reporting(E_ALL);
         $request = new Request($id);
         $request->setStatus('Cancelled');
         
-        $result = $request->update_request();
+        $result = $request->updateRequest();
 
         if ($result) {
             $_SESSION['success'] = 'Request has been successfully cancelled';
@@ -239,7 +248,7 @@ error_reporting(E_ALL);
             $_SESSION['error'] = "Error cancelling request";
         }
         
-        $result = RequestApproval::insert_request_approval(
+        $result = RequestApproval::insertRequestApproval(
             $rqid,
             'Cancelled',
             'Cancelled',

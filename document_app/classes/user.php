@@ -1,5 +1,7 @@
 <?php
 
+require_once 'user_group.php';
+
 class user{
     private $id;
     private $user_id;

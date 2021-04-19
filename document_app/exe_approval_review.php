@@ -22,6 +22,7 @@ if (isset($_POST['user_apex'])) {
 	$workflow_id = $_POST['wflow_id'];
 	$task_id = $_POST['step_id'];
 	$approval_state = $_POST['sel_actiond'];
+	$current_user = $user['user_id'];
 
 	// remarks is removed for confirmation only task
 	$remarks = '';
@@ -30,154 +31,29 @@ if (isset($_POST['user_apex'])) {
 	}
 
 	$unixtime = time();
-	$current_user = $user['user_id'];
 
 	$request = new request($request_id);
-	$requestor_id = $request->getRequestor_id();
-
-	// get the number of task approved in a request
-	$countstat = $request->getApprovedRequestCount();
+	
+	$result = $request->processRequestApproval($task_id, $approval_state, $current_user);
 	$requestor_id = $request->Requestor()->getUser_id();
-	$setAchor = $request->getAnchoredTask();
 
-	$workflow = new Workflow($workflow_id);
-	$seq_no = $workflow->getTaskSequence($task_id);
-
-	/**
-	 * Get request task object.
-	 */
-	$task_status = RequestTaskStatus::getRequestTask($workflow_id, 
-				   $task_id, $request_id);
-
-	$result = false;
-
-	/**
-	 * Insert the request transaction in the request task status.
-	 */
-	if ($task_status == null){
-		$result = RequestTaskStatus::insertRequestToTaskStatus($workflow_id,
-					$task_id, $request_id,  $seq_no, $current_user);
-
-		// again get the object
-		$task_status = RequestTaskStatus::getRequestTask($workflow_id, 
-					$task_id, $request_id);
- 
-	}
-	else {
-		/**
-		 * Just update the request task status.
-		 */
-		$task_status->setRequest_status($approval_state);
-		$task_status->setApp_user($current_user);
-		$task_status->setUnixdate($unixtime);
-
-		$result = $task_status->updateRequestTaskStatus();
-	}
-
-	/**
-	* Get request task approver object.
-	*/
-	$task_approver = RequestTaskApprover::getTaskApprover($workflow_id, $task_id, 
-					$request_id, $current_user);
-
-	if ($task_approver == null){
-		
-		$result = RequestTaskApprover::insertRequestTaskApprover($unixtime,
-					$request_id, $workflow_id, $task_id, $seq_no, $current_user, 
-					$approval_state, $remarks);
-		
-					// again get the object 
-		$task_approver = RequestTaskApprover::getTaskApprover($workflow_id, $task_id, 
-					$request_id, $current_user);
-
-	}
-	else {
-		$task_approver->setUnixdate($unixtime);
-		$task_approver->setSequence_no($seq_no);
-		$task_approver->setApprover_id($current_user);
-		$task_approver->setApproval_status($approval_state);
-		$task_approver->setRemarks($remarks);
-
-		$task_approver->updateRequestTaskApprover();
-	}
-
-	/**
-	 * Check if the requestor is an approver of this task.
-	 * If approver then insert to the task approver table and to the 
-	 * request approval table only if the action is not Disapproved.
-	 * This is to skip the requestor from approving task.
-	 */
-    if (($approval_state == 'Approved' || $approval_state == 'Confirmed')  && $current_user != $requestor_id) {
+    if (($approval_state == 'Approved' || $approval_state == 'Confirmed') 
+		&& $current_user != $requestor_id) {
         if ($task_status->isRequestorNeedToApproved($requestor_id)) {
-
-            $requestor_task_approver = RequestTaskApprover::getTaskApprover(
-                $workflow_id,
-                $task_id,
-                $request_id,
-                $requestor_id
-            );
-
-            if ($requestor_task_approver == null) {
-				// insert to task approver table
-                RequestTaskApprover::insertRequestTaskApprover(
-                    $unixtime,
-                    $request_id,
-                    $workflow_id,
-                    $task_id,
-                    $seq_no,
-                    $requestor_id,
-                    $approval_state,
-                    $remarks
-                );
-
-                // insert to request approval table
-                RequestApproval::insertRequestApproval(
-                    $request_id,
-                    $workflow_id,
-                    $task_id,
-                    $approval_state,
-                    $requestor_id,
-                    $remarks,
-                    $unixtime
-                );
-            }
-			else {
-				// this is use during re-submission
-				$requestor_task_approver->setUnixdate($unixtime);
-				$requestor_task_approver->setApprover_id($requestor_id);
-				$requestor_task_approver->setApproval_status($approval_state);
-				$requestor_task_approver->setRemarks($remarks);
-		
-				$requestor_task_approver->updateRequestTaskApprover();
-			}
+			
+			echo "\r\nAutomatically approved the requestor's task";
+                $request->autoApprovedRequestor($task_id, $requestor_id, $seq_no);
         }
     }
-
-	/**
-	 * Insert to the approval history table.
-	 */
-	$result = RequestApproval::insertRequestApproval($request_id, $workflow_id,
-						$task_id, $approval_state, $current_user,	$remarks, $unixtime);
 
     if ($result) {
         $_SESSION['success'] = $request_id . ' request has been ' . $approval_state;
 
-		// total approver in a task of a request
-		//$approver_total = $request->getRequestTaskApproversCount($task_id);
 
 		$task = new Task($task_id);
-        $required_number_approval = $task->getNeeded_approval();
-
-		// get approved count in a task for a request
-		// ex. Minda --> approved, Shiela --> not yet
-		// total task approver = 2     approved_count = 1
-       // $approved_count = $request->getRequestTaskApprovalCount($task_id);
-        $total_task = $workflow->getTaskCount();
-
-        // no. of task approved in a request
-        $countstat = $request->getApprovedRequestCount(); // + 1;
 
 		$isTaskComplete = $request->isTaskApprovalComplete($task_id);
+		// check if the request all task has completed.
 		$isRequestComplete = $request->isRequestApprovalComplete();
         
 		// completed
@@ -190,7 +66,7 @@ if (isset($_POST['user_apex'])) {
 
 			// Approved or Confirm
         } elseif (($approval_state == 'Approved' || $approval_state == 'Confirmed')
-        and ($isTaskComplete)) {
+        and ($isTaskComplete && !$isRequestComplete )) {
             $status = $approval_state;
         }
 

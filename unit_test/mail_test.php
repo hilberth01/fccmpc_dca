@@ -8,6 +8,7 @@ require '../document_app/classes/user_group.php';
 require_once '../document_app/classes/user.php';
 require '../document_app/includes/functions_mail.php';
 require '../document_app/includes/functions.php';
+require '../document_app/classes/request_mail.php';
 
 
 use PHPUnit\Framework\TestCase;
@@ -30,14 +31,21 @@ class MailTest extends TestCase
          throw new Exception("Workflow not found.");
     }
 
-    public function testSendRequest(){
-        send_mail("FCCMPC-0000103");
-    }
+    // public function testSendRequest(){
+    //     send_mail("FCCMPC-0000103");
+    // }
 
     // public function testMail(){
     //     mail("hilberth01@yahoo.com", "Test Mail", "This is just a test", 
     //     "From:fccmpc_dca.noreply<fccmpc_dca@fccmpc.com>\r\nContent-Type:h");
     // }
+
+    public function testMail(){
+
+        $task_id = "LWU2GAZ6HR51O0X";
+        $mail = new RequestMail("FCCMPC-0000167");
+        $mail->sendRequestMail($task_id);
+    }
 
 
     

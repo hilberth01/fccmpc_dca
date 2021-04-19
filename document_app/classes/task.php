@@ -459,4 +459,8 @@ class task
 
         return $this;
     }
+
+    public function isConcurrenceOnly(){
+        return $this->confirm_type == "Concurrence" ? true : false;
+    }
 }

@@ -27,6 +27,11 @@
                 </span> <span>Completed Docs</span></a>
             </li>
 
+            <li class="<?php ($pgAccess == "approved_documents") ? "active" : ""; ?>">
+                <a href="./?pid=approved_documents"><span class="glyphicon glyphicon-lock">
+                </span> <span>Approved Documents</span></a>
+            </li>
+
             <li class="header">TRANSACTIONS</li>
 
             <!-- <a href="./?pid=request&requser=<?php echo $user['user_id']; ?>" -->

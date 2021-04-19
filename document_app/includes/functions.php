@@ -338,7 +338,6 @@ function revert_task($w_id, $s_id, $r_id, $status, $user){
 					$ret_msg = $conn->error;
 				}				
 			
-			
 				$sql = "UPDATE fs_request_task_approver SET approval_status = '',unixdate='0',approval_remarks=''  
 				WHERE workflow_id='$w_id' and rq_no = '$r_id' and seq_no >= '$setAchor' and approval_status 
 				in ('Approved','Confirmed','Disapproved')";
@@ -353,10 +352,18 @@ function revert_task($w_id, $s_id, $r_id, $status, $user){
 			
 		} else {
 
+
 				$request = new Request($r_id);
-				$request->updateDisapprovedTask();
+
+				// clear previously transacted task
+				$request->cleanUpdatedTask();
 				$request->setStatus('InProgress');
 				$request->updateRequest();
+
+				$task_id = $request->getRequestTasksStatus()->first()->getTask_id();
+	
+				$mail = new RequestMail($r_id);
+				$mail->sendRequestMail($task_id);
 			}
 					
 			

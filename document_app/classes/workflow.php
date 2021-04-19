@@ -170,6 +170,21 @@ class Workflow
     }
 
     /**
+     * Get the task that is anchored.
+     */
+    public function getAnchoredTask(){
+        $tasks = $this->getTask();
+
+        foreach ($tasks as $task){
+            if ($task->getReject_anchor()){
+                return $task;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get sequence of the task on a workflow.
      */
     public function getTaskSequence($task_id)
@@ -187,6 +202,26 @@ class Workflow
 
             return $row['form_sequence'];
         }
+    }
+
+    /**
+     * Get sequence task through the workflows attached task.
+     */
+    public function getSequenceTask($sequence_no){
+        
+        $tasks = $this->getTasks();
+        
+        $sequence_loop = 1;
+        foreach ($tasks as $task){
+            
+            if ($sequence_loop == $sequence_no){
+                return $task;
+            }
+
+            $sequence_loop++;
+            
+        }
+        return null;
     }
 
     /**
