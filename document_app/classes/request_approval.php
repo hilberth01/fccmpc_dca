@@ -105,12 +105,9 @@ class RequestApproval
 
         $conn = $GLOBALS['conn'];
 
-        if ($conn->query($sql)) {
-            return true;
-        }
+        if (!$conn->query($sql)) 
+            throw new exception($conn->error);
 
-        echo 'db error' . $conn->error;
-        return false;
     }
 
     /**

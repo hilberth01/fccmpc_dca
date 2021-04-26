@@ -13,6 +13,8 @@
     require_once 'classes/user_group.php';
     require_once 'classes/request_mail.php';
 
+    require_once 'classes/app_logger.php';
+
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
@@ -33,7 +35,7 @@
         $initstat = "New";
         $rev_no = $_POST['revno'];//create_revision_no($docname);
             
-        $task_id = (isset($_POST['task_id'])) ? $_POST['task_id'] : '';
+       // $task_id = (isset($_POST['task_id'])) ? $_POST['task_id'] : '';
         $app_group_sel = (isset($_POST['app_group'])) ? implode(',', $_POST['app_group'])
                         : '';
         
@@ -43,7 +45,9 @@
         /**
          * Insert the request to main request table.
          */
-        if ($docdesp == "") $docdesp = '';
+        if ($docdesp == "") {
+            $docdesp = '';
+        }
 
         $result = request::insertRequest(
             $rev_no,
@@ -53,42 +57,22 @@
             $workflow,
             $activeuser,
             $initstat,
-            $unixtime
-        );
-// 
-        if ($result) {
-            // insert tor request approval table
-            RequestApproval::insertRequestApproval(
-                $genControlNo,
-                $workflow,
-                'Created',
-                'Created',
-                $activeuser,
-                $initstat,
-                $unixtime
-            );
+            $unixtime);
+        
+        Applogger::debug("Inserting new request: " . $genControlNo . " by user: " . $active_user);
             
-            // insert the request to request task status
-            RequestTaskStatus::InsertNewRequest($genControlNo, $workflow, 
-                                                   $app_group_sel);
+        $request = new request($genControlNo);
+        $request->initiateNewRequest($app_group_sel);                                                   
                     
-            $_SESSION['success'] = 'New request has been successfully generated';
-
-            $request = new Request($genControlNo);
-            $task_id = $request->getRequestTasksStatus()->first()->getTask_id();
-
-            $mail = new RequestMail($genControlNo);
-            $mail->sendRequestMail($task_id);
-
-        } 
-        else {
+        if ($result){
+            $_SESSION['success'] = 'New request has been successfully generated.';
+        } else {
             $_SESSION['error'] = $conn->error;
         }
 
         if (!empty($filename)) {
             move_uploaded_file($_FILES['docname']['tmp_name'],
-                './file_dump/'.$filename
-            );
+                './file_dump/'.$filename);
             
             $result = RequestAttachement::insert_request_attachment($genControlNo,
                                 $filename, $activeuser, $unixtime);
@@ -101,8 +85,9 @@
         }
     
         $paction = 'INSERT';
-    }
-    //execute edit item=======================================
+
+    }  //execute edit item=======================================
+
     elseif (isset($_POST['edit'])) {
         $id = $_POST['id'];
         $docname = $_POST['edit_docname'];
@@ -174,95 +159,32 @@
      * Re-submit request.
      */
     elseif (isset($_POST['resubmit'])) {
+        //$activeuser = $user['user_id'];
         $id = $_POST['rqid'];
-        $genControlNo = $_POST['rqid'];
-        $activeuser = $user['user_id'];
-        //$flow_id = $user['wrkflow_id'];
-        $s_id = '';
-        $w_id = $_POST['wrkflow_id'];
-        $unixtime = time();
-        $status = 'resubmit';
-     
-        $result = RequestApproval::insertRequestApproval(
-            $id,
-            'Resubmit',
-            'Resubmit',
-            'Resubmit',
-            $activeuser,
-            'Resubmit',
-            $unixtime
-        );
+        $request_id = $_POST['rqid'];
 
+        $request  = new request($request_id);
+        $result = $request->resubmitRequest();
 
-        if ($result) {
-            $_SESSION['success'] = 'Your request has been submitted';
+        $_SESSION['success'] = 'Your request has been re-submitted';
 
-            revert_task($w_id, $s_id, $id, $status, $activeuser);	//remove approve items until anchor task
-
-            //Update main table
-            $request = new Request($id);
-            $request->setStatus('InProgress');
-            $request->updateRequest();
-        } else {
-            $_SESSION['error'] = "Error re-submitting request.";
-        }
+        //$_SESSION['error'] = "Error re-submitting request.";
 
         $paction = 'UPDATE';
-
-    // if($conn->query($sql)){
-        // 	$_SESSION['success'] = 'Your request has been submitted.';
-            
-        // 	revert_task($w_id, $s_id, $id, $status, $activeuser);	//remove approve items until anchor task
-            
-        // 	//Update main table
-        // 	$request = new Request($id);
-        // 	$request->setStatus('InProgress');
-        // 	$request->update_request();
-
-        // 	$send_mail = 'YES';
-        // 	//$sql3 = "UPDATE fs_request_main SET rq_status = 'InProgress' WHERE rq_id = '$id'";	 //change main status to InProgress
-        // 	//$conn->query($sql3);
-        // 	//$send_mail = 'YES';
-        // }
-        // else{
-        // 	$_SESSION['error'] = "Error re-submitting request.";
-        // }
+  
     }
     
     //execute CANCEL item ====================================
     elseif (isset($_POST['cancel'])) {
         $id = $_POST['id'];
-        $rqid = $_POST['rqid'];
-        $activeuser = $user['user_id'];
-        $unixtime = time();
+        $request_id = $_POST['rqid'];
 
-        //Update main table
-        $request = new Request($id);
-        $request->setStatus('Cancelled');
-        
-        $result = $request->updateRequest();
-
-        if ($result) {
-            $_SESSION['success'] = 'Request has been successfully cancelled';
-        } else {
-            $_SESSION['error'] = "Error cancelling request";
-        }
-        
-        $result = RequestApproval::insertRequestApproval(
-            $rqid,
-            'Cancelled',
-            'Cancelled',
-            'Cancelled',
-            $activeuser,
-            'Cancelled',
-            $unixtime
-        );
-
-        if ($result) {
-            $_SESSION['success'] .= ', Status: Cancelled.';
-        } else {
-            $_SESSION['error'] .= 'Error inserting cancelled request';
-        }
+        $active_user = new User($user['user_id']);
+        $request = new request($request_id);
+        $request->cancelRequest($active_user);
+       
+        $_SESSION['success'] .= 'Status: Cancelled.';
+        // $_SESSION['error'] .= 'Error inserting cancelled request';
         
         $paction = 'UPDATE';
     }
@@ -272,7 +194,7 @@
         $id = $_POST['id'];
 
         $request = new Request($id);
-        $result = $request->delete_request();
+        $result = $request->deletRequest();
 
         if ($result) {
             $_SESSION['success'] = 'Request successfully deleted';

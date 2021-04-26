@@ -344,6 +344,10 @@ function revert_task($w_id, $s_id, $r_id, $status, $user){
 
 				if($conn->query($sql)){
 					$ret_msg = 'Record was successfully added';
+
+					$mail = new RequestMail($r_id);
+					$mail->sendRequestMail($task_id);
+
 				}
 				else{
 					$ret_msg = $conn->error;
@@ -360,7 +364,7 @@ function revert_task($w_id, $s_id, $r_id, $status, $user){
 				$request->setStatus('InProgress');
 				$request->updateRequest();
 
-				$task_id = $request->getRequestTasksStatus()->first()->getTask_id();
+				$task_id = $request->getRequestTasksStatusCollection()->first()->getTask_id();
 	
 				$mail = new RequestMail($r_id);
 				$mail->sendRequestMail($task_id);

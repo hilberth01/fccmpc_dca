@@ -69,11 +69,9 @@ class RequestTaskApprover
             approval_remarks = '$this->remarks'
             where id = '$this->id'";
 
-        if ($this->conn->query($sql)) {
-            return true;
-        }
+        if (!$this->conn->query($sql)) 
+            throw new exception($this->conn->error);    
 
-        return false;
     }
 
     public static function insertRequestTaskApprover(
@@ -107,12 +105,9 @@ class RequestTaskApprover
 
         $conn = $GLOBALS['conn'];
 
-        if ($conn->query($sql)) {
-            return true;
-        }
+        if (!$conn->query($sql)) 
+            throw new exception($conn->error);
 
-        echo 'db error' . $conn->error;
-        return false;
     }
 
     public static function getTaskApprover($workflow_id, $task_id, 

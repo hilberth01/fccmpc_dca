@@ -38,6 +38,15 @@
       ),
       'reference' => 'd56bf6102915de5702778fe20f2de3b2fe570b5b',
     ),
+    'monolog/monolog' => 
+    array (
+      'pretty_version' => '2.2.0',
+      'version' => '2.2.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '1cb1cde8e8dd0f70cc0fe51354a59acad9302084',
+    ),
     'myclabs/deep-copy' => 
     array (
       'pretty_version' => '1.10.2',
@@ -176,6 +185,22 @@
       array (
       ),
       'reference' => '130104cf796a88dd1547dc5beb8bd555c2deb55e',
+    ),
+    'psr/log' => 
+    array (
+      'pretty_version' => '1.1.3',
+      'version' => '1.1.3.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '0f73288fd15629204f9d42b7055f72dacbe811fc',
+    ),
+    'psr/log-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.0.0',
+      ),
     ),
     'sebastian/code-unit-reverse-lookup' => 
     array (

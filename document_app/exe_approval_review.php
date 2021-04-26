@@ -4,14 +4,16 @@
 	include 'includes/functions.php';
 	include 'includes/functions_mail.php';
 	include_once 'includes/class_approver.php';
-	include 'classes/request_task_status.php';
+	require_once 'classes/request_task_status.php';
 	include_once 'classes/request.php';
-	include 'classes/request_approval.php';
-	include 'classes/request_task_approver.php';
+	require_once 'classes/request_approval.php';
+	require_once 'classes/request_task_approver.php';
 	
 	$pageid = (isset($_GET['track']))? $_GET['track'] : '';
 	$paction = '';
 	$send_mail = 'NO';
+
+	
 
  /**
   * execute add item  
@@ -30,65 +32,17 @@ if (isset($_POST['user_apex'])) {
 		$remarks = $_POST['remarks'];
 	}
 
-	$unixtime = time();
-
 	$request = new request($request_id);
 	
-	$result = $request->processRequestApproval($task_id, $approval_state, $current_user);
-	$requestor_id = $request->Requestor()->getUser_id();
+	$task = new task($task_id);
+	$result = $request->processRequestApproval($task, $approval_state, 
+				$current_user, $remarks);
 
-    if (($approval_state == 'Approved' || $approval_state == 'Confirmed') 
-		&& $current_user != $requestor_id) {
-        if ($task_status->isRequestorNeedToApproved($requestor_id)) {
-			
-			echo "\r\nAutomatically approved the requestor's task";
-                $request->autoApprovedRequestor($task_id, $requestor_id, $seq_no);
-        }
-    }
-
-    if ($result) {
-        $_SESSION['success'] = $request_id . ' request has been ' . $approval_state;
-
-
-		$task = new Task($task_id);
-
-		$isTaskComplete = $request->isTaskApprovalComplete($task_id);
-		// check if the request all task has completed.
-		$isRequestComplete = $request->isRequestApprovalComplete();
-        
-		// completed
-        if ($isRequestComplete &&   $isTaskComplete) {
-            $status = 'Completed';
-			// In Progress
-        } elseif (($approval_state == 'Approved' || $approval_state == 'Confirmed')
-            and (!$isTaskComplete)) {
-            $status = 'InProgress';
-
-			// Approved or Confirm
-        } elseif (($approval_state == 'Approved' || $approval_state == 'Confirmed')
-        and ($isTaskComplete && !$isRequestComplete )) {
-            $status = $approval_state;
-        }
-
-		else {
-            $status = $approval_state;
-        }
-
-        $request->setStatus($status);
-        $result = $request->updateRequest();
-
-        if ($result) {
-            $_SESSION['success'] .= ' , Request has been successfully updated';
-            $send_mail = 'YES';
-        } else {
-            $_SESSION['error'] = $conn->error;
-        }
-
-	} else	{
-		$_SESSION['error'] = 'Request approval fail';
-	}
+	if ($result)  $_SESSION['success'] .= ' , Request has been successfully updated';
+	else $_SESSION['error'] = "Request approval failed.";
 
 	$paction = 'INSERT';
+	$send_mail = "NO";
 
 }
 
@@ -208,7 +162,7 @@ attrib_logger($pname, $paction, $puser, $pattrib);
 if ($send_mail == "YES") {
 	$_SESSION['request_no'] = $request_id;
 	$_SESSION['next_page'] = './?pid=approval_rev&track=' . $pageid . '';
-	header('location: ./loading_send_mail.php');
+//	header('location: ./loading_send_mail.php');
 } else {
 	header('location: ./?pid=approval_rev&track=' . $pageid . '');
 }

@@ -1,0 +1,90 @@
+[2021-04-25T17:10:17.341910+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Inserting new request: FCCMPC-0000223 by user:   
+[2021-04-25T17:10:24.255323+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Request FCCMPC-0000223 successfully initiated.  
+[2021-04-25T17:12:05.763930+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Minda in task Department Head Approval  
+[2021-04-25T17:12:05.791496+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T17:13:08.750169+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Disapproved by Nitz in task Department Head Approval  
+[2021-04-25T17:13:08.784946+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T17:13:08.788614+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T17:13:13.884531+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Nitz  
+[2021-04-25T20:39:18.061168+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Minda in task Department Head Approval  
+[2021-04-25T20:39:18.103149+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T20:40:58.807201+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Nitz in task Department Head Approval  
+[2021-04-25T20:40:58.846598+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T20:42:12.633633+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Sheila in task Department Head Approval  
+[2021-04-25T20:42:12.660455+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T20:43:18.824835+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Tad in task Department Head Approval  
+[2021-04-25T20:43:18.852404+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T20:47:13.807658+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Whien in task Department Head Approval  
+[2021-04-25T20:47:13.835708+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Approved  
+[2021-04-25T20:47:13.839268+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T20:47:13.850420+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Next task for approval : General Manager Approval  
+[2021-04-25T20:47:19.713784+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Whien  
+[2021-04-25T21:06:46.129790+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Sheila in task Department Head Approval  
+[2021-04-25T21:06:46.154047+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T21:07:27.764344+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Whien in task Department Head Approval  
+[2021-04-25T21:07:27.789610+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T21:08:09.313262+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Nitz in task Department Head Approval  
+[2021-04-25T21:08:09.336473+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T21:08:44.047319+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Minda in task Department Head Approval  
+[2021-04-25T21:08:44.075293+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T21:09:21.951706+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Tad in task Department Head Approval  
+[2021-04-25T21:09:21.979382+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Approved  
+[2021-04-25T21:09:21.982801+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T21:09:21.994058+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Next task for approval : General Manager Approval  
+[2021-04-25T21:09:27.135572+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Tad  
+[2021-04-25T21:11:41.196844+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Tad in task Department Head Approval  
+[2021-04-25T21:12:51.896587+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Approved  
+[2021-04-25T21:12:51.905515+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T21:12:51.923012+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Next task for approval : General Manager Approval  
+[2021-04-25T21:12:57.342481+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Tad  
+[2021-04-25T21:15:53.142284+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Tad in task Department Head Approval  
+[2021-04-25T21:15:57.537694+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T21:16:23.245656+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Minda in task Department Head Approval  
+[2021-04-25T21:16:23.275217+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T21:16:55.503919+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Disapproved by Nitz in task Department Head Approval  
+[2021-04-25T21:16:55.533373+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T21:16:55.536808+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T21:17:01.134395+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Nitz  
+[2021-04-25T21:19:20.573866+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Salvie in task Department Head Approval  
+[2021-04-25T21:19:20.602835+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: InProgress  
+[2021-04-25T22:24:58.848167+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Reygan in task General Manager Approval  
+[2021-04-25T22:24:58.876416+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Approved  
+[2021-04-25T22:24:58.877950+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : General Manager Approval fully approved.  
+[2021-04-25T22:24:58.891485+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Next task for approval : DCA Approval  
+[2021-04-25T22:25:04.284635+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Reygan  
+[2021-04-25T22:46:59.253544+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by yuya in task BOD  Approval  
+[2021-04-25T22:46:59.281583+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T22:46:59.282728+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : BOD  Approval fully approved.  
+[2021-04-25T22:47:04.401530+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by yuya  
+[2021-04-25T22:55:56.530222+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by yuya in task BOD  Approval  
+[2021-04-25T22:55:56.554583+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T22:55:56.555901+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : BOD  Approval fully approved.  
+[2021-04-25T22:55:56.576795+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by yuya  
+[2021-04-25T23:32:47.458335+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Disapproved by yuya in task BOD  Approval  
+[2021-04-25T23:32:47.488009+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T23:32:47.491670+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : BOD  Approval fully approved.  
+[2021-04-25T23:32:47.509747+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by yuya  
+[2021-04-25T23:37:16.919106+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Disapproved by Salvie in task Department Head Approval  
+[2021-04-25T23:37:16.951000+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T23:37:16.954476+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T23:37:16.973266+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Salvie  
+[2021-04-25T23:38:06.604344+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Sheila in task Department Head Approval  
+[2021-04-25T23:38:06.631572+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T23:38:06.632768+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T23:38:06.650183+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Sheila  
+[2021-04-25T23:39:55.582188+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Tad in task Department Head Approval  
+[2021-04-25T23:39:55.607560+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T23:39:55.608647+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T23:39:55.624272+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Tad  
+[2021-04-25T23:42:51.494751+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Tad in task Department Head Approval  
+[2021-04-25T23:42:51.529675+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T23:42:51.530781+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T23:42:51.549589+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Tad  
+[2021-04-25T23:43:30.442797+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Approved by Salvie in task Department Head Approval  
+[2021-04-25T23:43:30.471316+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Disapproved  
+[2021-04-25T23:43:30.472708+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Department Head Approval fully approved.  
+[2021-04-25T23:43:30.493544+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by Salvie  
+[2021-04-25T23:50:38.704120+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Initiating Confirmed by JR in task Implementers Conformance  
+[2021-04-25T23:50:38.734696+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Current request status: Completed  
+[2021-04-25T23:50:38.738318+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task : Implementers Conformance fully approved.  
+[2021-04-25T23:50:38.760650+08:00] C:\xampp\htdocs\fccmpc_dca\document_app\classes.DEBUG: Task approval successfully initiated by JR  

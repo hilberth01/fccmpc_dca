@@ -17,6 +17,7 @@ class RequestTaskStatus
     private $request_status;
     private $unixdate;
     private $app_user;
+    private $task;
 
     private $conn;
 
@@ -40,6 +41,7 @@ class RequestTaskStatus
             $this->unixdate = $row['unix_date'];
             $this->app_user = $row['app_user'];
 
+            $this->task = new Task($this->task_id);
             // $result->close();
         }
     }
@@ -47,7 +49,7 @@ class RequestTaskStatus
    
 
     public function Task(){
-        return new Task($this->task_id);
+        return $this->task;
     }
 
 
@@ -145,12 +147,9 @@ class RequestTaskStatus
 
         $conn = $GLOBALS['conn'];
 
-        if ($conn->query($sql)) {
-            return true;
-        }
+        if (!$conn->query($sql)) 
+            throw new exception($conn->error);
 
-        echo 'db error' . $conn->error;
-        return false;
     }
    
     // list the request status
@@ -220,7 +219,7 @@ class RequestTaskStatus
     /**
      * Check if the requestor is an approver of this request task.
      */
-    public function isRequestorApprover($user_id){
+    public function isRequestorApprover($requestor){
 
         $groups = explode(',', $this->user_approvers);
 
@@ -229,7 +228,7 @@ class RequestTaskStatus
 
             $users = $user_group->getApprovers();
             foreach ($users as $user){
-                if ($user->getUser_id() == $user_id){
+                if ($user->getUser_id() == $requestor->getUser_id()){
                     return true;
                 }
             }
@@ -245,7 +244,9 @@ class RequestTaskStatus
      * Check if the user already reviewed on the task like
      * approved or confirmation.
      */
-    public function isUserAlreadyReviewed($user_id){
+    public function isUserAlreadyReviewed($user){
+
+        $user_id = $user->getUser_id();
         
         $sql = "SELECT user_approver FROM fs_request_approval
         WHERE request_id = '$this->request_id'
@@ -264,9 +265,9 @@ class RequestTaskStatus
     /**
      * Function to check if a requestor needs an automatic approved.
      */
-    public function isRequestorNeedToApproved($user_id){
-        return $this->isRequestorApprover($user_id) && 
-            !$this->isUserAlreadyReviewed($user_id);
+    public function isRequestorNeedToApproved($user){
+        return $this->isRequestorApprover($user); //&& 
+            //!$this->isUserAlreadyReviewed($user);
     }
 
     /**
@@ -448,4 +449,5 @@ class RequestTaskStatus
 
         return $this;
     }
+  
 }

@@ -15,6 +15,8 @@
                     <?php
 					//$parse = parse_ini_file('./config.ini', FALSE, INI_SCANNER_RAW);
 					//$title = $parse['election_title'];
+
+
 					$tracker = (isset($_GET['track'])) ? $_GET['track'] : '';
 					$title = "Approval Form";
 					?>
@@ -29,11 +31,11 @@
                                     aria-hidden="true">&times;</button>
                                 <ul>
                                     <?php
-										foreach ($_SESSION['error'] as $error) {
-											echo "
-					        					<li>" . $error . "</li>
-					        				";
-										}
+										// foreach ($_SESSION['error'] as $error) {
+										// 	echo "
+					        			// 		<li>" . $error . "</li>
+					        			// 	";
+										// }
 										?>
                                 </ul>
                             </div>
@@ -97,13 +99,9 @@
 								$request_id = $request->getRequest_id();
 								$request_name = $request->getName();
 								$request_desc = $request->getDescription();
-								// $sql = "SELECT * FROM fs_request_main WHERE rq_id = '$tracker'";
-								// $query = $conn->query($sql);
 
-								//while ($row = $query->fetch_assoc()) {
-
-								//	$sqlFile = "SELECT * FROM fs_request_attachment WHERE file_id = '$tracker'";
-								//	$queryFile = $conn->query($sqlFile);
+								$current_user = new user($user['user_id']);
+							
 
 									$attachment = new RequestAttachement($tracker);
 
@@ -157,7 +155,12 @@
 										WHERE fsw.form_id='" . $request->getWokflow_id() . "' ORDER BY fsw.form_sequence ASC";
 										
 									$cquery = $conn->query($sql);
+
 									while ($crow = $cquery->fetch_assoc()) {
+
+										$task_id = $crow['form_steps_id'];
+										$task = new task($task_id);
+
 										//from function 
 										$slug = slugify($request_name);
 										$checked = '';  //SELECT `id`, `rq_work_id`, `rq_step_id`, `rq_no`, `seq_no`, `user_approvers`, `rq_status`, `unix_date`, `app_user` FROM `fs_request_task_status`
@@ -166,7 +169,7 @@
 										
 										$approvedCount = get_appv_user_event($request_id, $crow['form_id'], $crow['form_steps_id']);
 										 
-										if ($request->isTaskHasDisapproval($crow['form_steps_id']) || $request->isTaskHasAnEmptyStatus($crow['form_steps_id'])){
+										if ($request->isTaskHasDisapproval($crow['form_steps_id'])) {//|| $request->isTaskHasAnEmptyStatus($crow['form_steps_id'])){
 											$approvedCount = 0;
 										 }
 
@@ -213,17 +216,10 @@
 
 										$member_array = explode(",", $userTaskapprv);
 										$member_array = array_unique($member_array);
-										//$approver_total = count($member_array);
-										$approver_total = $request->getRequestTaskApproverUsers(
-											$crow['form_steps_id'])->count();
 
-										//var_dump($member_array);
+										$isTaskComplete = $request->isTaskApprovalComplete($task_id);
 
-										if ($approver_total == $approvedCount) {
-											$app_apex = $app_apex;
-
-											
-										} else {
+										if  (!$isTaskComplete && $app_apex != 'Disapproved'){
 											$app_apex = 'InProgress';
 										}
 
@@ -263,15 +259,40 @@
 												$rowClass = 'success';
 											} else if ($app_apex == 'Disapproved' && $lastState == 'Disapproved') {
 
+												$is_approved = $request->isUserAlreadySignedTheTask($task, $current_user);
 												$input = $status_label_x;
-												$appbtn = '<button type="button" class="btn btn-danger btn-sm btn-flat clist apex" disabled><i class="fa fa-recycle"></i> Rejected</button>';
-												$rowClass = 'danger';
-											} else if (($app_apex == 'Disapproved' || $app_apex == 'InProgress' || $app_apex == 'Resubmit') && $lastState == 'Resubmit') {
 
+												if ($is_approved){
+													$appbtn = '<button type="button" class="btn btn-danger btn-sm btn-flat clist apex" disabled>
+															<i class="fa fa-recycle"></i> Rejected</button>';
+												}else{
+													$appbtn = '<button type="button" class="btn btn-warning btn-sm btn-flat clist apex" data-platform="' 
+													. $crow['work_name'] . '" data-reqest_id="' . $request_id . '" data-wflow_id="' 
+													. $crow['form_id'] . '" data-step_id="' . $crow['form_steps_id'] . '" ><i class="fa fa-recycle" ></i> Evaluate</button>';
+
+												}
+												
+
+												$rowClass = 'danger';
+
+											} else if (($app_apex == 'Disapproved' || $app_apex == 'InProgress' || 
+												$app_apex == 'Resubmit') && $lastState == 'Resubmit') {
+
+												$is_approved = $request->isUserAlreadySignedTheTask($task, $current_user);
 												$input = $status_label_x;
-												$appbtn = '<button type="button" class="btn btn-warning btn-sm btn-flat clist apex" data-platform="' 
+
+												if ($is_approved){
+													$appbtn = '<button type="button" class="btn btn-warning btn-sm btn-flat clist apex" data-platform="' 
+													. $crow['work_name'] . '" data-reqest_id="' . $request_id . '" data-wflow_id="' 
+													. $crow['form_id'] . '" data-step_id="' . $crow['form_steps_id'] . '" disabled><i class="fa fa-recycle" ></i> Evaluate</button>';
+
+												}
+												else{
+													$appbtn = '<button type="button" class="btn btn-warning btn-sm btn-flat clist apex" data-platform="' 
 												. $crow['work_name'] . '" data-reqest_id="' . $request_id . '" data-wflow_id="' 
-												. $crow['form_id'] . '" data-step_id="' . $crow['form_steps_id'] . '"><i class="fa fa-recycle"></i> Evaluate</button>';
+												. $crow['form_id'] . '" data-step_id="' . $crow['form_steps_id'] . '" ><i class="fa fa-recycle" ></i> Evaluate</button>';
+												}
+
 												$rowClass = 'danger';
 
 											} else if ($usedisapprv == 'Disapproved' and $request_id == 'Disapproved') {
@@ -283,7 +304,8 @@
 												$task_id = $crow['form_steps_id'];
 												// check if the user already approved the steps
 												// if already approved the button will be disabled to prevent re-approved
-												$is_approved = is_user_already_approved($request_id, $task_id, $user['user_id']);
+												 // is_user_already_approved($request_id, $task_id, $user['user_id']);
+												$is_approved = $request->isUserAlreadySignedTheTask($task, $current_user);
 												
 												$isDisapproved = $request->isUserDisapprovedTheTask($task_id, $user['user_id']);
 

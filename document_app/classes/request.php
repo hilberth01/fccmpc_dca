@@ -4,6 +4,11 @@ require_once '../vendor/autoload.php';
 require_once 'user.php';
 require_once 'user_group.php';
 require_once 'request_task_status.php';
+require_once 'request_mail.php';
+require_once 'request_task_approver.php';
+
+require_once 'app_logger.php';
+
 
 use Doctrine\Common\Collections\ArrayCollection;
 
@@ -20,8 +25,12 @@ class request
     private $request_unix;
     private $date_created;
 
+    private $user_requestor;
     private $conn;
     private $row;
+
+    private $workflow;
+    private $logger;
 
     public function __construct($id)
     {
@@ -34,12 +43,12 @@ class request
             $sql = "SELECT * FROM fs_request_main 
             WHERE id = '$id'";
         }
-
+        
         $result = $this->conn->query($sql);
 
         if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
-
+    
             $this->row = $row;
             $this->id = $row['id'];
             $this->revision_id = $row['revision_id'];
@@ -52,16 +61,20 @@ class request
             $this->request_unix = $row['rq_unix'];
             $this->date_created = $row['rq_created'];
             
+            $this->user_requestor = new user($this->requestor_id);
+            $this->workflow = new Workflow($this->workflow_id);
             // $result->close();
         }
     }
+        
+    
 
     public function __destruct()
     {
         // $this->conn->close();
     }
 
-    public function delete_request()
+    public function deleteRequest()
     {
         $sql = "DELETE FROM fs_request_main WHERE id = '$this->id'";
 
@@ -69,13 +82,12 @@ class request
             return true;
         }
 
-        echo 'db' . $this->conn_error;
         return false;
     }
 
     public function Workflow()
     {
-        return new Workflow($this->workflow_id);
+        return $this->workflow;
     }
 
     /**
@@ -95,18 +107,16 @@ class request
             rq_created = '$this->date_created'
             where id = '$this->id'";
 
-        if ($this->conn->query($sql)) {
-            return true;
+        if (!$this->conn->query($sql)) {
+            throw new exception($this->conn->error);
         }
-
-        return false;
     }
+
+    
 
     public function revertTask()
     {
-        $workflow = $this->GetWorkflow();
-
-        $tasks = $workflow->getTasks();
+        $tasks = $this->workflow->getTasks();
 
         foreach ($tasks as $task) {
             $this->cleanupPreviousTask($task->getTask_id());
@@ -117,91 +127,150 @@ class request
      * Clean request task approver row (remarks, approval status).
      * Use when re-submitting task.
      */
-    public function cleanUpdatedTask()
+    public function resetUpdatedTask()
+    {
+        $this->resetApprovedTaskStatus();
+        $this->resetApproverTask();
+    }
+
+    // exclude the requestor
+    public function resetApprovedTaskStatus()
     {
         $sql = "UPDATE fs_request_task_approver
-        SET approval_status = '', approval_remarks = ''
+        SET approval_status = '', approval_remarks = '', unixdate = '0'
         WHERE rq_no = '$this->request_id'
         AND workflow_id = '$this->workflow_id'";
 
-        if ($this->conn->query($sql)) {
-            return true;
+        if (!$this->conn->query($sql)) {
+            throw new exception($this->conn->error);
         }
-
-        return false;
     }
 
-    public function resubmitRequest($user_id)
+    public function resetApproverTask()
+    {
+        $sql = "UPDATE fs_request_task_status
+        SET rq_status = '', unix_date = '0', app_user = ''
+        WHERE rq_no = '$this->request_id'
+        AND rq_work_id = '$this->workflow_id'";
+
+        if (!$this->conn->query($sql)) {
+            throw new exception($this->conn->error);
+        }
+    }
+
+    /**
+     * Resubmit request
+     */
+    public function resubmitRequest()
     {
 
-        $mail = new RequestMail($this->request_id);
-
+        // get the task where to return the request (only if the task
+        // is tag with anchor)
         $task = $this->getAnchoredTask();
-        $sequence_no = $task->getSequence_no();
 
-        $task_id = $task->getTask_id();
+        $sequence_no = 0;
 
-        $result = RequestApproval::insertRequestApproval(
+        if ($task != null) {
+            $sequence_no = $this->workflow->getTaskSequence($task->getTask_id());
+        }
+
+        // insert to the request history
+        RequestApproval::insertRequestApproval(
             $this->request_id,
             'Resubmit',
             'Resubmit',
             'Resubmit',
-            $user_id,
+            $this->requestor_id,
             'Resubmit',
             time()
         );
 
-
-        if ($task == null){
-            $this->cleanUpdatedTask();
-            $task_id = $request->getRequestTasksStatus()->first()->getTask_id();
-            
-        }
-        else {
-
+        // if the request is below the anchored task
+        if ($task == null) {
+            // just clean the previously updated task
+            // DCA <
+            $this->resetUpdatedTask();
+            // get the first request task where to send the re-submitted request
+            $task = $this->getRequestTasksStatusCollection()->first();
+        } else {
+            // for the anchored task like DCA
             $this->resetRequestTaskStateInAnchor($sequence_no);
             $this->resetTaskApproverInAnchor($sequence_no);
-
         }
+
+        // set request auto approval if he is the approval
+        $this->autoApprovedRequestor($task);
 
         $this->status = "InProgress";
         $this->updateRequest();
-        $mail->sendRequestMail($task_id);
-      
+
+        $mail = new RequestMail($this->request_id);
+        $mail->sendRequestMail($task->getTask_id(), "Resubmit");
     }
 
-    public function resetRequestTaskStateInAnchor($sequence_no){
-        
-        $sql = "UPDATE fs_request_task_status 
-        SET rq_status = 'InProgress',unix_date='0',app_user=''  
-		WHERE rq_work_id='$this->workflow_id' and rq_no = '$this->request_id' 
-        and seq_no >= '$sequence_no' 
-		and rq_status in ('Approved','Confirmed')";
+    public function cancelRequest($active_user)
+    {
+        $tasks = $this->getRequestTasksStatusCollection();
 
-        if ($this->conn->query($sql)) {
-            return true;
+        $usersTo = new ArrayCollection();
+
+        foreach ($tasks as $task) {
+            $users = $this->getUsersWhoApprovedDisapprovedTheTask($task);
+
+            foreach ($users as $user) {
+                $usersTo->add($user);
+            }
         }
 
-        return false;
+        $this->setStatus("Cancelled");
+        $this->updateRequest();
+
+        RequestApproval::insertRequestApproval(
+            $this->request_id,
+            'Cancelled',
+            'Cancelled',
+            'Cancelled',
+            $active_user->getUser_id(),
+            'Cancelled',
+            time()
+        );
+
+        $mail = new RequestMail($this->request_id);
+        $mail->sendRequestMailToUsers("Cancelled", $usersTo);
+    }
+
+    
+
+    /**
+     * Clear task status in an anchored and the task after the anchor.
+     */
+    public function resetRequestTaskStateInAnchor($sequence_no)
+    {
+        $sql = "UPDATE fs_request_task_status 
+        SET rq_status = 'InProgress', unix_date='0', app_user=''  
+		WHERE rq_work_id='$this->workflow_id' and rq_no = '$this->request_id' 
+        and seq_no >= '$sequence_no' 
+		and rq_status in ('Approved', 'Confirmed', 'Disapproved')";
+
+        if (!$this->conn->query($sql)) {
+            throw new exception($this->conn->error);
+        }
     }
 
     /**
      * Clean request approver approval status (use for request resubmit)
      */
-    public function resetTaskApproverInAnchor($sequence_no){
-
+    public function resetTaskApproverInAnchor($sequence_no)
+    {
         $sql = "UPDATE fs_request_task_approver 
         SET approval_status = '',unixdate='0',approval_remarks=''  
         WHERE workflow_id='$this->workflow_id' and rq_no = '$this->request_id' 
         and seq_no >= '$sequence_no' and approval_status 
-        in ('Approved','Confirmed','Disapproved')";
+        in ('Approved', 'Confirmed', 'Disapproved')";
 
-        if ($this->conn->query($sql)) {
-        return true;
+        if (!$this->conn->query($sql)) {
+            throw new exception($this->conn->error);
         }
-
-        return false;
-
     }
 
     /**
@@ -309,6 +378,42 @@ class request
         return false;
     }
 
+    /**
+     * Initiate new request.
+     */
+    public function initiateNewRequest($selected_group_of_approver)
+    {
+
+        // insert to approval history
+        RequestApproval::insertRequestApproval(
+            $this->request_id,
+            $this->workflow_id,
+            'Created',
+            'Created',
+            $this->requestor_id,
+            "New",
+            time()
+        );
+
+            
+        // insert to the task status
+        RequestTaskStatus::InsertNewRequest(
+            $this->request_id,
+            $this->workflow_id,
+            $selected_group_of_approver
+        );
+
+        // get the 1st task where to send the mail
+        $task = $this->getRequestTasksStatusCollection()->first();
+        $task_id = $task->getTask_id();
+
+        $this->autoApprovedRequestor($task);
+
+        $mail = new RequestMail($this->request_id);
+        $mail->sendRequestMail($task_id, "");
+
+        Applogger::debug("Request " .  $this->request_id . " successfully initiated.");
+    }
 
     public static function list_requests($filter_status)
     {
@@ -358,14 +463,14 @@ class request
     // public function getAnchoredTask()
     // {
     //     $sql = "SELECT rts.*, fss.work_name, fss.reject_anchor
-	// 		FROM fs_request_task_status rts
-	// 		LEFT JOIN fs_workstpes fss 
+    // 		FROM fs_request_task_status rts
+    // 		LEFT JOIN fs_workstpes fss
     //         ON fss.work_id=rts.rq_step_id
-	// 		WHERE rts.rq_no = '$this->request_id' 
-    //         and rts.rq_status 
-    //         in ('Approved','Confirmed') 
+    // 		WHERE rts.rq_no = '$this->request_id'
+    //         and rts.rq_status
+    //         in ('Approved','Confirmed')
     //         and fss.reject_anchor = 'Yes'
-	// 		ORDER BY rts.seq_no ASC Limit 1";
+    // 		ORDER BY rts.seq_no ASC Limit 1";
         
     //     $query = $this->conn->query($sql);
             
@@ -385,18 +490,23 @@ class request
             ON fss.work_id=rts.rq_step_id
 			WHERE rts.rq_no = '$this->request_id' 
             and rts.rq_status 
-            in ('Approved','Confirmed') 
+            in ('Approved', 'Confirmed', 'Disapproved') 
             and fss.reject_anchor = 'Yes'
 			ORDER BY rts.seq_no ASC Limit 1";
+
+            
         
         $query = $this->conn->query($sql);
             
         if ($query) {
             $row = $query->fetch_assoc();
-            $task_id = isset($row['rq_step_id']) ? $row['rq_step_id'] : 0;
+            $task_id = isset($row['rq_step_id']) ? $row['rq_step_id'] : null;
 
-            if ($task_id == 0) return null;
-            else return new Task($task_id);
+            if ($task_id == null) {
+                return null;
+            } else {
+                return new Task($task_id);
+            }
         }
 
         return null;
@@ -643,9 +753,7 @@ class request
          */
     public function isRequestApprovalComplete()
     {
-        $workflow = $this->GetWorkflow();
-        
-        $task_count = $workflow->getTaskCount();
+        $task_count = $this->workflow->getTaskCount();
         $approved_count = $this->getApprovedRequestCount();
 
         return $task_count == $approved_count ? true : false;
@@ -703,9 +811,37 @@ class request
     }
 
     /**
+     * Get request_task_status id through its workflow,
+     * task and request id.
+     *
+     */
+    public function getRequestTaskStatus($task)
+    {
+        $task_id = $task->getTask_id();
+
+        $sql = "SELECT id FROM fs_request_task_status
+        WHERE rq_work_id = '$this->workflow_id' 
+        AND rq_step_id = '$task_id' 
+        AND rq_no = '$this->request_id'";
+
+        $query = $this->conn->query($sql);
+
+        if (!$query) {
+            return null;
+        }
+
+        if ($query->num_rows > 0) {
+            $row = $query->fetch_assoc();
+            return new RequestTaskStatus($row['id']);
+        }
+        
+        return null;
+    }
+
+    /**
      * Get request task collection.
      */
-    public function getRequestTasksStatus()
+    public function getRequestTasksStatusCollection()
     {
         $sql = "SELECT * FROM fs_request_task_status
 		WHERE rq_no = '$this->request_id' ORDER BY seq_no";
@@ -818,6 +954,24 @@ class request
     }
 
     /**
+     * Used as reference when looking what time the task has the latest approval
+     */
+    public function getTaskLatestApprovalDate($task)
+    {
+        $task_id = $task->getTask_id();
+
+        $sql = "SELECT MAX(unixdate) AS latest_approval
+        FROM fs_request_task_approver
+        WHERE rq_no = '$this->request_id'
+        AND steps_id = '$task_id'";
+
+        $query = $this->conn->query($sql);
+
+        $row = $query->fetch_assoc();
+        return $row['latest_approval'];
+    }
+
+    /**
      * Get the count of users who need to approved this request task.
      */
     public function getRequestTaskApproversCount($task_id)
@@ -831,7 +985,7 @@ class request
     public function getPendingTask()
     {
         // get the task collection
-        $tasks =  $this->getRequestTasksStatus();
+        $tasks =  $this->getRequestTasksStatusCollection();
 
         foreach ($tasks as $task) {
             if ($this->isTaskApprovalComplete($task->getTask_id())) {
@@ -842,6 +996,65 @@ class request
         }
 
         return null;
+    }
+
+    public function getPreviousTask($current_task)
+    {
+        $task_id = $current_task->getTask_id();
+
+        $sql = "SELECT rq_step_id FROM fs_request_task_status
+        WHERE rq_no = '$this->request_id' 
+        AND  rq_work_id = '$this->workflow_id'
+        AND seq_no < (SELECT seq_no FROM fs_request_task_status
+        WHERE rq_no = '$this->request_id'  AND  rq_work_id = '$this->workflow_id'
+        AND rq_step_id = '$task_id')
+        ORDER BY seq_no DESC
+        LIMIT 1";
+
+        $query = $this->conn->query($sql);
+
+        if ($query == null || $query == false) {
+            return null;
+        }
+
+        if ($query->num_rows == 0) {
+            return null;
+        }
+
+        $row = $query->fetch_assoc();
+        $task_id = $row['rq_step_id'];
+
+        return new Task($task_id);
+    }
+
+    /**
+     * Determined if the user either already signed the task like approval or
+     * disapproval.
+     */
+    public function isUserAlreadySignedTheTask($task, $user){
+        
+        $task_id = $task->getTask_id();
+        $user_id = $user->getUser_id();
+
+        $sql = "SELECT approver.approval_status FROM fs_request_task_approver approver
+        WHERE approver.steps_id = '$task_id' 
+        AND approver.rq_no = '$this->request_id'
+        AND approver_id = '$user_id'
+        AND approval_status != ''
+        LIMIT 1";
+
+        $result = $this->conn->query($sql);
+
+        if (!$result) {
+            return false;
+        }
+        
+        if ($result->num_rows > 0) {
+            return true;
+        }
+
+        return false;
+
     }
 
     /**
@@ -953,10 +1166,10 @@ class request
     /**
      * Function to check if a requestor needs an automatic approved.
      */
-    public function isRequestorNeedToApproved($task_id, $user_id)
+    public function isRequestorNeedToApproved($task)
     {
-        return $this->isRequestorApprover($task_id) &&
-            !$this->isUserAlreadyReviewed($this->requestor_id);
+        return $this->isRequestorApprover($task->getTask_id()); // &&
+            //!$this->isUserAlreadyReviewed($this->requestor_id);
     }
 
    
@@ -971,6 +1184,30 @@ class request
         WHERE rq_no = '$this->request_id'
         AND steps_id = '$task_id' 
         AND approval_status IN ('Approved', 'Confirmed')";
+
+        $collection = new ArrayCollection();
+        $query = $this->conn->query($sql);
+
+        if (!$query) {
+            return $collection;
+        }
+
+        while ($row = $query->fetch_assoc()) {
+            $collection->add(new User($row['approver_id']));
+        }
+
+        return $collection;
+    }
+
+    public function getUsersWhoApprovedDisapprovedTheTask($task)
+    {
+        $task_id = $task->getTask_id();
+
+        $sql = "SELECT approver_id 
+        FROM fs_request_task_approver 
+        WHERE rq_no = '$this->request_id'
+        AND steps_id = '$task_id' 
+        AND approval_status IN ('Approved', 'Confirmed', 'Disapproved')";
 
         $collection = new ArrayCollection();
         $query = $this->conn->query($sql);
@@ -1027,15 +1264,24 @@ class request
         // get the number of approved transaction on the request.
         $currently_approved = $this->getUsersWhoApprovedTheTask($task_id)->count();
 
-        return ($need_to_approved - $currently_approved) == 0 ? true : false;
+        return ($need_to_approved <= $currently_approved) ? true : false;
     }
 
     /**
      * This will do the requestor auto approval if he is one of the
      * approver on the task.
      */
-    public function autoApprovedRequestor($task_id, $requestor_id, $seq_no)
+    public function autoApprovedRequestor($task)
     {
+        $task_id = $task->getTask_id();
+
+        $isNeedToApproved = $this->getRequestTaskStatus($task)->
+            isRequestorNeedToApproved($this->user_requestor);
+
+        if (!$isNeedToApproved) return;
+
+        $seq_no = $this->workflow->getTaskSequence($task_id);
+
         $request_id = $this->request_id;
         $workflow_id = $this->workflow_id;
         $unixtime = time();
@@ -1046,7 +1292,7 @@ class request
             $workflow_id,
             $task_id,
             $request_id,
-            $requestor_id
+            $this->requestor_id
         );
 
         if ($requestor_task_approver == null) {
@@ -1057,7 +1303,7 @@ class request
                 $workflow_id,
                 $task_id,
                 $seq_no,
-                $requestor_id,
+                $this->requestor_id,
                 $approval_state,
                 $remarks
             );
@@ -1068,14 +1314,14 @@ class request
                 $workflow_id,
                 $task_id,
                 $approval_state,
-                $requestor_id,
+                $this->requestor_id,
                 $remarks,
                 $unixtime
             );
         } else {
             // this is use during re-submission
             $requestor_task_approver->setUnixdate($unixtime);
-            $requestor_task_approver->setApprover_id($requestor_id);
+            $requestor_task_approver->setApprover_id($this->requestor_id);
             $requestor_task_approver->setApproval_status($approval_state);
             $requestor_task_approver->setRemarks($remarks);
     
@@ -1086,29 +1332,176 @@ class request
     /**
      * Do the approval process.
      */
-    public function processRequestApproval($task_id, $approval_state, $current_user, $remarks){
+    public function processRequestApproval($task, $approval_state, $current_user, $remarks)
+    {
+        Applogger::debug("Initiating " . $approval_state . " by " . $current_user
+        . " in task " . $task->getTask_name());
+
+        $task_id = $task->getTask_id();
+        $sequence_no = $this->workflow->getTaskSequence($task_id);
+
+        // update the request task status table
+        $this->updateRequestTaskStatus(
+            $task_id,
+            $sequence_no,
+            $approval_state,
+            $current_user
+        );
+
+        // update the request approval table
+        $this->updateRequestTaskApprover(
+            $task_id,
+            $sequence_no,
+            $approval_state,
+            $current_user,
+            $remarks
+        );
+
+        // get the latest request status
+        // return complete, cancelled, disapproved etc..
+        $status = $this->getRequestStatus($task_id);
         
-        $workflow = new workflow($this->workflow_id);
-        $sequence_no = $workflow->getTaskSequence($task_id);
+        // check task for confirmation
+        if ($status == "Approved") {
+            $status = $task->isConcurrenceOnly() == true ?  "Confirmed" : "Approved";
+        }
 
-        $result = false;
+        Applogger::debug("Current request status: " . $status);
 
-        $result = $this->updateRequestTaskStatus($task_id, $sequence_no, 
-                    $approval_state, $current_user);
+        // update the current state of the request
+        $this->setStatus($status);
+        $this->updateRequest();
 
-        if (!$result)
-            throw new exception("Unable to update the task status.");
+        // if the task still in progress just return
+        if ($status == "InProgress") {
+            return true;
+        }
 
+        $next_task = null;
+
+        Applogger::debug("Task : " . $task->getTask_name() . " fully approved.");
         
-        $result =  $this->updateRequestTaskApprover($task_id,$sequence_no, 
-                    $approval_state, $current_user, $remarks);
+        // since the current task already approved get the next pending task
+        if ($status == "Approved" || $status == "Confirmed") {
+            $next_task = $this->getPendingTask();
+    
+            if ($next_task != null) {
+                $task_id = $next_task->getTask_id();
 
-        if (!$result)
-            throw new exception("Unable to update the approver table.");
+                Applogger::debug("Next task for approval : " .
+                    $next_task->getTask_name());
 
-            return $result;
+                 $this->autoApprovedRequestor($next_task);
+            }
+        }
+    
+        // get next task to email
+        $mail = new RequestMail($this->request_id);
+        $mail->sendRequestMail($task_id, $status);
 
-   
+        Applogger::debug("Task approval successfully initiated by " . $current_user);
+    }
+
+    /**
+     * Called when approving a task automatically
+     */
+    public static function autoApprovedRequest()
+    {
+        AppLogger::debug("Initiating auto-approval.");
+
+        $request_list = request::listForApprovalRequest();
+
+        // loop through still for approval request
+        foreach ($request_list as $request) {
+
+            // get its current pending task
+            $pending_task = $request->getPendingTask();
+
+            if ($pending_task == null) {
+                continue;
+            }
+
+            AppLogger::debug("Checking request ". $request->getRequest_id() .
+                        " on Task: " . $pending_task->getTask_name());
+
+            // check for its previous task
+            $previous_task = $request->getPreviousTask($pending_task);
+
+            $time_difference = 0;
+
+            if ($previous_task != null) {
+                // get the latest approval time from the previous task
+                $last_approval_time = $request->getTaskLatestApprovalDate($previous_task);
+                Applogger::debug("Previous task: " . $previous_task->getTask_name());
+                $time_difference = ((time() - $last_approval_time)/(3600 * 24));
+
+            } else {
+                // we are on the first request task
+                $last_approval_time = $request->getRequest_unix();
+                Applogger::debug("Previous task: New Request");
+                $time_difference = ((time() - $last_approval_time)/(3600 * 24));
+            }
+
+            // default to 3 if 0
+            $task_duration = $pending_task->getTask_duration() == 0 ? 3
+                : $pending_task->getTask_duration();
+        
+            // time limit hit -- it is due for auto approval
+            if ($time_difference >= $task_duration) {
+
+                Applogger::debug("Expire: Time difference = " . $time_difference
+                            . " Task duration = " . $task_duration);
+                
+                // collect the user who still did not approve the task
+                $approvers = $request->getUsersStillNeedToApprovedTheTask($pending_task->getTask_id());
+                            $approvers_name = "";
+                            
+                foreach ($approvers as $user) {
+                    Applogger::debug("System auto-approved initiated to user: " . $user->getUser_id());
+
+                    $approvers_name .= $user->getUser_mail() . ',';
+
+                    // do auto approved
+                    $request->processRequestApproval(
+                        $pending_task,
+                        "Approved",
+                        $user->getUser_id(),
+                        "System auto-approval"
+                    );
+                }
+
+              //  $approvers_name = rtrim($approvers_name, ",");
+            }
+        }
+    }
+
+    /**
+     * List the request with Approved or still progress status.
+     */
+    public static function listForApprovalRequest()
+    {
+        $sql = "SELECT request.*, user.firstname, user.lastname 
+        FROM fs_request_main request 
+        LEFT JOIN fs_users user on user.user_id = request.rq_requestor 
+        WHERE rq_status = 'Approved' 
+        OR rq_status = 'InProgress'
+        OR rq_status = 'New'
+        ORDER BY request.id DESC";
+
+        $conn = $GLOBALS['conn'];
+        $query = $conn->query($sql);
+
+        if (!$query) {
+            throw new exception($conn->error);
+        }
+
+        $collection = new ArrayCollection();
+        while ($row = $query->fetch_assoc()) {
+            $request = new request($row['rq_id']);
+            $collection->add($request);
+        }
+
+        return $collection;
     }
 
     /**
@@ -1117,7 +1510,6 @@ class request
      */
     public function updateRequestTaskStatus($task_id, $sequence_no, $approval_state, $current_user)
     {
-        
         $task_status = RequestTaskStatus::getRequestTask(
             $this->workflow_id,
             $task_id,
@@ -1127,7 +1519,7 @@ class request
         $result = false;
         /**
          * insert the task if not yet on the table
-         *  */ 
+         *  */
         if ($task_status == null) {
             $result = RequestTaskStatus::insertRequestToTaskStatus(
                 $this->workflow_id,
@@ -1136,8 +1528,6 @@ class request
                 $sequence_no,
                 $current_user
             );
-
-      
         } else {
             /**
          * Just update the request task status.
@@ -1153,7 +1543,7 @@ class request
     }
 
     /**
-     * Update the approver table. Every user approval / disapproval 
+     * Update the approver table. Every user approval / disapproval
      * is inserted here to know during the query already approved or disapproved.
      */
     public function updateRequestTaskApprover(
@@ -1162,8 +1552,7 @@ class request
         $approval_state,
         $current_user,
         $remarks
-    )
-    {
+    ) {
         $unixtime = time();
         /**
         * Get request task approver object.
@@ -1175,12 +1564,11 @@ class request
             $current_user
         );
 
-        $result = false;
         /**
          * If no transaction yet just insert the transaction.
          */
         if ($task_approver == null) {
-            $result = RequestTaskApprover::insertRequestTaskApprover(
+            RequestTaskApprover::insertRequestTaskApprover(
                 $unixtime,
                 $this->request_id,
                 $this->workflow_id,
@@ -1191,9 +1579,9 @@ class request
                 $remarks
             );
 
-            /**
-             * Else update if already available.
-             */
+        /**
+         * Else update if already available.
+         */
         } else {
             $task_approver->setUnixdate($unixtime);
             $task_approver->setSequence_no($sequence_no);
@@ -1201,7 +1589,7 @@ class request
             $task_approver->setApproval_status($approval_state);
             $task_approver->setRemarks($remarks);
 
-            $result = $task_approver->updateRequestTaskApprover();
+            $task_approver->updateRequestTaskApprover();
         }
 
         /**
@@ -1216,8 +1604,6 @@ class request
             $remarks,
             $unixtime
         );
-
-        return $result;
     }
 
 
@@ -1226,10 +1612,9 @@ class request
      */
     public function getRequestStatus($task_id)
     {
-        $workflow = new Workflow($this->workflow_id);
 
         // no. of task on a request or workflow
-        $total_task = $workflow->getTaskCount();
+        $total_task = $this->workflow->getTaskCount();
 
         // check if all task in a request is completed
         $isRequestComplete = $this->isRequestApprovalComplete();
@@ -1238,6 +1623,12 @@ class request
         $isTaskComplete = $this->isTaskApprovalComplete($task_id);
 
         $status = '';
+
+        
+        $task = $this->getTaskWithDisapproval();
+        if ($task != null) {
+            return "Disapproved";
+        }
 
         // completed
         if ($isRequestComplete &&   $isTaskComplete) {
@@ -1258,29 +1649,29 @@ class request
     }
 
     //get last action from history
-public function getRequestLastState(){
-    
-    $sql = "SELECT user_apex
+    public function getRequestLastState()
+    {
+        $sql = "SELECT user_apex
     FROM fs_request_approval 
     WHERE request_id='$this->request_id' 
     ORDER BY id DESC LIMIT 1";
 
-    $query = $this->conn->query($sql);
+        $query = $this->conn->query($sql);
 
-    if (!$query) {
-        throw new Exception("Not able to retreive request last state");
+        if (!$query) {
+            throw new Exception("Not able to retreive request last state");
+        }
+
+        if ($query->num_rows > 0) {
+            $row = $query->fetch_assoc();
+            return $row['user_apex'];
+        }
+
+        return '';
     }
 
-    if ($query->num_rows > 0) {
-        $row = $query->fetch_assoc();
-        return $row['user_apex'];
-    }
-
-    return '';
-}
-
-    public function listRequest(){
-
+    public function listRequest()
+    {
         $sql = "SELECT rm.rq_id, rm.rq_status, rm.rq_name, rm.rq_description, 
 		wf.form_sequence, wf.form_id, wf.form_name, 
 		wf.form_steps_id,fss.work_id, fss.work_name, rts.user_approvers
@@ -1290,8 +1681,6 @@ public function getRequestLastState(){
 		LEFT JOIN fs_request_task_status rts ON rts.rq_step_id = wf.form_steps_id 
         and rts.rq_no = '$this->request_id' 
 		WHERE rm.rq_id = '$this->request_id' ORDER BY wf.form_sequence ASC";
-
-
     }
 
     public static function insertRequest(
@@ -1339,7 +1728,7 @@ public function getRequestLastState(){
      */
     public function GetWorkflow()
     {
-        return new Workflow($this->workflow_id);
+        return $this->workflow;
     }
 
 
